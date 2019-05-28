@@ -1,106 +1,102 @@
-
-
-
-
 #program initial.
-%:- not &tel { &initial ;> go(red,east,1) ;> go(red,south,2);> go(blue,north,3) ;> go(blue,east,4) ;> go(red,north,5) }.
-%
+
+% target robot has to move at least once if target is not in the same row/column
+%:- not &tel { &initial ;>: goRobot(Color) ;>: goRobot(Color) }, _target(Color,XT,YT), _pos(Color,XR,YR), (XT!=XR;YT!=YR).
+% target robot has to move at least twice if target is not in the same row and column
+:- not &tel { &initial ;>: goRobot(Color) ;>: goRobot(Color) }, _target(Color,XT,YT), _pos(Color,XR,YR), XT!=XR, YT!=YR.
+
 step(0).
-robot(R) :- pos(R,_,_).
 
-inverse(east,west). inverse(west,east).				% reverese directions
-inverse(north,south). inverse(south,north).
-vertical(north,-1). vertical(south,1).			% vertical directions
-horizontal(east,1). horizontal(west,-1).		% horizontal directions
+dir(north, -1,  1).			% direction, sub, column/orientation
+dir(south,  1,  1).			% direction, add, column
+dir(east,   1, -1).			% direction, add, row
+dir(west,  -1, -1).			% direction, sub, row
+inverseDir(north,south).	% inverse directions
+inverseDir(south,north).
+inverseDir(east,west).
+inverseDir(west,east).
+robot(R) :- pos(R,_,_).		% all robots
 
-dir(north,-1).
-dir(south, 1).
-dir(east,  1).
-dir(west, -1).
-
-
-% create missing barriers
-barrier(X,Y+V,DI) :- barrier(X,Y,D), vertical(D,V), dim(X), dim(Y), dim(Y+V), inverse(D,DI).
-barrier(X+V,Y,DI) :- barrier(X,Y,D), horizontal(D,V), dim(X), dim(Y), dim(X+V), inverse(D,DI).
-
+% add missing barriers
+barrier(X,Y+Val,IDir) :- barrier(X,Y,Dir), inverseDir(Dir,IDir), dir(Dir, Val,  1). % column
+barrier(X+Val,Y,IDir) :- barrier(X,Y,Dir), inverseDir(Dir,IDir), dir(Dir, Val, -1). % row
 %#show barrier/3.
 
-%:- not &tel {go(red,north,5) ;> &final}.
+% possible ways a robot can go from the field
+connect(X,Y,Dir) :- dim(X), dim(Y), dir(Dir, Val, 1), dim(Y+Val), not barrier(X,Y,Dir).
+connect(X,Y,Dir) :- dim(X), dim(Y), dir(Dir, Val,-1), dim(X+Val), not barrier(X,Y,Dir).
+%#show connect/3.
+
 
 #program dynamic.
 step(S+1) :- 'step(S).
 
 % Select robot
-1 {gor(R) : _robot(R)} 1.
+1 {goRobot(R) : _robot(R)} 1.
 % select direction
-1 {god(D,V) : _dir(D,V)} 1.
-
+1 {goDir(Dir,Val,Ori) : _dir(Dir,Val,Ori), goRobot(R), 'pos(R,X,Y), _connect(X,Y,Dir)} 1.
 % output atom
-go(R,D,S) :- gor(R), god(D,V), step(S).
-
-% prevent reverse moves
-:- gor(R), 'gor(R), _inverse(D,DI), god(D,_), 'god(DI,_).
-
-
-% prevent out of bounce moves
-:- 'pos(R,X,Y), gor(R), god(D,V), _vertical(D,V), not _dim(Y+V).
-:- 'pos(R,X,Y), gor(R), god(D,V), _horizontal(D,V), not _dim(X+V).
-% moving robot can not end on same pos
-:- pos(R,X,Y), 'pos(R,X,Y), gor(R).
-
-%pos(R,X,Y) :- god(D,V),
-
+go(R,Dir,S) :- goRobot(R), goDir(Dir,_,_), step(S).
 #show go/3.
+
+% robot can't move the same row/column (Ori) as in the move before
+:- goRobot(R), 'goRobot(R), goDir(_,_,Ori), 'goDir(_,_,Ori).
+% für initial gibt es diese möglichkeit?
+%:- &tel {goRobot(Color) & goDir(Dir1,Val1,Ori) ;> goRobot(Color) & goDir(Dir2,Val2,Ori)}, _robot(Color), _dir(Dir1,Val1,Ori), _dir(Dir2,Val2,Ori).
+
+
+% same orientation move - increases choices?
+% prevent the same orientation move of the same robots in a row
+%blockOri(R,Ori) :- 'goDir(_,_,Ori), 'goRobot(R), goDir(_,_,Ori).
+%:- blockOri(R,Ori), goDir(_,_,Ori), goRobot(R).
+%blockOri(R1,Ori) :- 'blockOri(R1,Ori), blockOri(R2,Ori), R1!=R2.
+%#show blockOri/2.
+
+% block line - increases choices?
+% block the line the robot has moved until another robot moves to this line
+% TODO: for release: check if other robot moved to the same segment (no barrier between)
+%blocked(R,Ori,X) :- 'goRobot(R), 'goDir(_,_,Ori), 'pos(R,X,Y), Ori=1.
+%blocked(R,Ori,Y) :- 'goRobot(R), 'goDir(_,_,Ori), 'pos(R,X,Y), Ori=-1.
+%blocked(R1,Ori,I) :- 'blocked(R1,Ori,I), 'goRobot(R2), 'pos(R2,X,Y), Ori= 1, Y!=I.
+%blocked(R1,Ori,I) :- 'blocked(R1,Ori,I), 'goRobot(R2), 'pos(R2,X,Y), Ori=-1, X!=I.
+%:- blocked(R,Ori,_), goRobot(R), goDir(_,_,Ori).
+
+
+%blocked fields by other robots
+blocked(X,Y) :- _robot(R), not goRobot(R), 'pos(R,X,Y).
+
+% all fields the robot passes when moving
+reach(X,Y) :- 'pos(R,X,Y), goRobot(R).
+reach(X,Y+Val) :- reach(X,Y), goDir(Dir,Val, 1), _dim(Y+Val), not _barrier(X,Y,Dir), not blocked(X,Y+Val).
+reach(X+Val,Y) :- reach(X,Y), goDir(Dir,Val,-1), _dim(X+Val), not _barrier(X,Y,Dir), not blocked(X+Val,Y).
+
+%position on all not moving robots
+pos(R,X,Y) :- _robot(R), not goRobot(R), 'pos(R,X,Y).
+% final field the robot reaches when moving
+pos(R,X,Y) :- goRobot(R), reach(X,Y), goDir(Dir,Val, 1), not reach(X,Y+Val).
+pos(R,X,Y) :- goRobot(R), reach(X,Y), goDir(Dir,Val,-1), not reach(X+Val,Y).
 %#show pos/3.
-%#show god/2.
-
-blocked(X,Y) :- gor(R2), _robot(R), 'pos(R,X,Y), R != R2.
-pos(R,X,Y) :- gor(R2), _robot(R), 'pos(R,X,Y), R != R2.
-%#show blocked/2.
-
-reach(X,Y) :- 'pos(R,X,Y), gor(R).
-%#show reach/2.
-reach(X,Y+V) :- reach(X,Y),
-				god(D,V),
-				_vertical(D,_),
-				_dim(Y+V),
-				_inverse(D,DI),
-				not _barrier(X,Y+V,DI),
-				not blocked(X,Y+V),
-				#true.
-reach(X+V,Y) :- reach(X,Y),
-				god(D,V),
-				_horizontal(D,_),
-				_dim(X+V),
-				_inverse(D,DI),
-				not _barrier(X+V,Y,DI),
-				not blocked(X+V,Y),
-				#true.
-pos(R,X,Y) :- gor(R),
-				reach(X,Y),
-				god(D,V),
-				_vertical(D,_),
-				not reach(X,Y+V),
-				%_dim(Y+V),
-				#true.
-pos(R,X,Y) :- gor(R),
-				reach(X,Y),
-				god(D,V),
-				_horizontal(D,_),
-				not reach(X+V,Y),
-				%_dim(X+V),
-				#true.
-
-%a
-%:- 'pos(R,_,_), not pos(R,_,_).
 
 
 #program final.
-% robot pos & target pos have to be the same
-% is length/1 the minimum? maximum search depth
+% target robot has to be on the target field
 :- _target(R,X,Y), not pos(R,X,Y).
 
-% length constraints
-:- _length(maxS), 'step(S-1), _target(R,X,Y), pos(R,XR,YR), X!=XR, Y=YR.
-:- _length(maxS), 'step(S-1), _target(R,X,Y), pos(R,XR,YR), X=XR, Y!=YR.
-:- _length(maxS), 'step(maxS), _target(RT,_,_), gor(RM), RM!=RT.
+% ignore all solutions with less steps than provided length, might ignore better solution
+% speedup for less than length, since it can just ignore those
+:- step(S), _length(L), S<L.
+
+% final robot has to be the target robot
+:- goRobot(R1), _target(R2,_,_), R1 != R2.
+% before last step: target robot has to be in line with target
+:- 'pos(R,XR,YR), _target(R,XT,YT), XR!=XT, YR!=YT.
+
+% test - step
+%:- step(0).
+%:- step(1).
+%:- step(2).
+%:- step(3).
+%:- step(4).
+%:- step(5).
+%:- step(6).
+%:- step(7).

@@ -64,9 +64,9 @@ dim(6).
 dim(7).
 dim(8).
 dim(9).
-length(12).
 pos(blue,1,16).
 pos(green,16,1).
 pos(red,1,1).
 pos(yellow,16,16).
-target(red,8,6).
+target(blue,2,8).
+length(14).
