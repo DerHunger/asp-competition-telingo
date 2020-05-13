@@ -13,12 +13,13 @@ visited(P) :- at(P).
 #program initial.
 state(0).
 % only one position can be visited at a time/state, first place is already visited in state 0
+% minimum number of places to be visited, starting places is already visited
 min_state(S-1) :- S=#count{P:visit(P)}.
 
 #program dynamic.
 state(S+1) :- 'state(S).
 
-% select new position
+% select a new position from connected previous position
 1{at(P) : 'at(PP), _connected(PP,P)}1.
 % keep all visited positions
 visited(P) :- 'visited(P).

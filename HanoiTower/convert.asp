@@ -39,8 +39,8 @@ disk(A) :- 'disk(D), A=D-4, D>4.
 moves(S) :- 'steps(S).
 #show moves/1.
 
-% time is time
-time(T) :- 'time(T).
+% time is time, not needed
+% time(T) :- 'time(T).
 
 % on0 to init_on
 % first disk on each peg can be taken over, decrease disk number by 4

@@ -14,11 +14,14 @@ on(D,P) :- init_on(D,P).
 % get smallest disk/disk with highest value
 mdisk(M) :- M = #max{D : _disk(D)}.
 
-% block disks that are already on the goal peg and don't have disk below that have to be moved (init) or will get disk below (goal)
-block(D1) :- init_on(D1,P1), goal_on(D1,P1), 0=#count{D2 : goal_on(D2,P1), not block(D2), D2<D1}, 0=#count{D2 : init_on(D2,P1), not block(D2), D2<D1}.
+% block disks that are already on the goal peg
+% and don't have disk below that have to be moved (init)
+% or will get disk below (goal)
+block(D1) :- init_on(D1,P1), goal_on(D1,P1),
+             0 = #count{D2 : goal_on(D2,P1), not block(D2), D2<D1},
+             0 = #count{D2 : init_on(D2,P1), not block(D2), D2<D1}.
 
 moveable(D) :- disk(D), not block(D).
-
 
 #program dynamic.
 step(S+1) :- 'step(S).
