@@ -1,14 +1,9 @@
 %*
 telingo encoding for Labyrinth problem from the ASP Competition 2013
 ( https://www.mat.unical.it/aspcomp2013/OfficialProblemSuite )
-Arguments:
-D - direction (n - north, s - south, e - east, w - west)
-N - number of row/column
-S - step
 *%
 
 #program initial.
-step(0).
 dir(n). dir(s). dir(e). dir(w).			% directions
 inverse(e,w). inverse(w,e).				% inverse directions
 inverse(n,s). inverse(s,n).
@@ -18,8 +13,6 @@ size(N) :- N = #max{X : field(X,Y)}.    % size of the NxN field
 reach(X,Y) :- init_on(X,Y).				% places the actor can reach
 
 #program dynamic.
-step(S+1) :- 'step(S).
-
 % select push direction
 1 {pdir(D) : _dir(D)} 1.
 % select push row/column
@@ -29,11 +22,13 @@ step(S+1) :- 'step(S).
 push(N,D) :- pdir(D), pnum(N).
 #show push/2.
 
+%*
 % pushed fields have same Y/X value, X/Y is changed with direction value
 % modulo fieldsize to prevent dropping of the grid (0 or N+1)
 % clingo modulo: -1\3=-1 => add fieldsize to get the new value on the field
 % -1 & +1 since the field starts at 1, modulo at 0
 % new field: (field size + current field + direction -1) modulo (field size +1)
+*%
 shift(X,Y,X,YN) :- _field(X,Y),
 					push(X,PD),
 					_vertical(PD,V),
@@ -76,3 +71,13 @@ reach(X+V,Y) :- reach(X,Y),
 #program final.
 % goal has to be reached
 :- goal_on(Yg,Xg), not reach(Yg,Xg).
+
+%*
+% competition output
+#program initial.
+step(0).
+#program dynamic.
+step(S+1) :- 'step(S).
+push(N,D, S) :- push(N,D), step(S).
+#show push/3.
+*%

@@ -1,7 +1,10 @@
+%*
+telingo encoding for Nomystery problem from the ASP Competition 2013
+( https://www.mat.unical.it/aspcomp2013/OfficialProblemSuite )
+*%
 
 #program initial.
 state(0).
-maxstep(T) :- T = #max{S:step(S)}.
 truck(T) :- fuel(T,L).
 package(P) :- at(P,_), goal(P,_).
 
@@ -20,6 +23,7 @@ state(S+1) :- 'state(S).
 1 {load(P,T,L,S) : _truck(T), _package(P), 'at(T,L), 'at(P,L), state(S)} 1 :- occurs(load).
 1 {unload(P,T,L,S) : _truck(T), _package(P), 'at(T,L), 'load(P,T), _goal(P,L), state(S)} 1 :- occurs(unload).
 1 {drive(T,L1,L2,S) : _truck(T), 'at(T,L1), _fuelcost(C,L1,L2), state(S)} 1 :- occurs(drive).
+#show load/4. #show unload/4. #show drive/4.
 
 % keep packages loaded till unload
 load(P,T) :- load(P,T,L,S).
