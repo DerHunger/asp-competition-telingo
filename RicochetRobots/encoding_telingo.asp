@@ -24,10 +24,6 @@ barrier(X,Y+Val,IDir) :- barrier(X,Y,Dir), inverseDir(Dir,IDir), dir(Dir, Val,  
 % row
 barrier(X+Val,Y,IDir) :- barrier(X,Y,Dir), inverseDir(Dir,IDir), dir(Dir, Val, -1), dim(X+Val).
 
-% possible ways a robot can go from the field
-connect(X,Y,Dir) :- dim(X), dim(Y), dir(Dir, Val, 1), dim(Y+Val), not barrier(X,Y,Dir).
-connect(X,Y,Dir) :- dim(X), dim(Y), dir(Dir, Val,-1), dim(X+Val), not barrier(X,Y,Dir).
-
 % outer barriers
 barrier(X,Y,north) :- dim(X), mindim(Y).
 barrier(X,Y,south) :- dim(X), maxdim(Y).
@@ -42,7 +38,7 @@ step(S+1) :- 'step(S).
 % select Direction
 1 {goDir(Dir,Val,Ori) : _dir(Dir,Val,Ori)} 1.
 % prevent non-selectable direction
-:- goDir(Dir,Val,Ori), goRobot(R), 'pos(R,X,Y), not _connect(X,Y,Dir).
+:- goDir(Dir,Val,Ori), goRobot(R), 'pos(R,X,Y), _barrier(X,Y,Dir).
 
 % robot can't move the same row/column (Ori) as in the move before
 :- goRobot(R), 'goRobot(R), goDir(_,_,Ori), 'goDir(_,_,Ori).
